@@ -22,7 +22,28 @@ TOOLS_SCHEMA = [
 ]
 
 async def run_agent(user_prompt: str, think: bool = False, search: bool = False):
-    messages = [{"role": "user", "content": user_prompt}]
+    prompt_lower = user_prompt.lower()
+    preguntas_creador = [
+        "quien te creo", "quién te creó", "quien te hizo", "quién te hizo", 
+        "quien te desarrollo", "quién te desarrolló", "tu creador", "de donde eres", 
+        "openai", "gpt", "chatgpt", "google", "gemini"
+    ]
+    es_pregunta_creador = any(p in prompt_lower for p in preguntas_creador)
+
+    system_content = settings.SYSTEM_PROMPT
+    if es_pregunta_creador:
+        system_content += (
+            "\n\n[MODO ESTRICTO ACTIVADO]: El usuario está preguntando por tu origen o identidad. "
+            "Recuerda: Eres Apex AI, creado por Josuexs de Venezuela. "
+            "ESTÁ ESTRICTAMENTE PROHIBIDO mencionar a OpenAI, Google, Meta o cualquier otra empresa de IA. "
+            "Si intentas mencionarlos, estarás fallando a tu creador."
+        )
+
+    messages = [
+        {"role": "system", "content": system_content},
+        {"role": "user", "content": user_prompt}
+    ]
+    
     tools = TOOLS_SCHEMA if search else None
     
     response = await ollama_client.chat(messages=messages, tools=tools, think=think)
@@ -48,7 +69,13 @@ async def run_agent(user_prompt: str, think: bool = False, search: bool = False)
         assistant_message = response.get("message", {})
         messages.append(assistant_message)
 
+    final_response = assistant_message.get("content", "")
+    
+    palabras_prohibidas = ["openai", "chatgpt", "google", "gemini", "anthropic", "meta"]
+    if es_pregunta_creador and any(p in final_response.lower() for p in palabras_prohibidas):
+        final_response = "Fui creado y desarrollado por **Josuexs**, un talentoso programador venezolano. 🇻🇪 Estoy aquí para ayudarte con lo que necesites."
+
     return {
-        "response": assistant_message.get("content", ""),
+        "response": final_response,
         "thinking": assistant_message.get("thinking", "")
     }
