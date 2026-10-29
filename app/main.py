@@ -47,3 +47,11 @@ async def chat_endpoint(request: Request, chat_request: ChatRequest):
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "creator": "Josuexs (Venezuela)"}
+
+@app.get("/version")
+async def get_version():
+    return {
+        "version": "1.0.0",
+        "url": "https://github.com/josuexs1/ApexAI-Backend/releases/latest",
+        "changelog": "Mejoras en el rendimiento y corrección de errores."
+    }
