@@ -52,6 +52,5 @@ async def health_check():
 async def get_version():
     return {
         "version": "1.0.0",
-        "url": "https://github.com/josuexs1/ApexAI-Backend/releases/latest",
         "changelog": "Mejoras en el rendimiento y corrección de errores."
     }
