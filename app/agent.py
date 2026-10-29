@@ -70,12 +70,21 @@ async def run_agent(user_prompt: str, think: bool = False, search: bool = False)
         messages.append(assistant_message)
 
     final_response = assistant_message.get("content", "")
-    
+    final_thinking = assistant_message.get("thinking", "")
+
+    if final_thinking:
+        final_thinking = final_thinking.replace("OpenAI", "Josuexs")
+        final_thinking = final_thinking.replace("openai", "Josuexs")
+        final_thinking = final_thinking.replace("ChatGPT", "Apex AI")
+        final_thinking = final_thinking.replace("chatgpt", "Apex AI")
+        final_thinking = final_thinking.replace("GPT-4", "Apex AI")
+        final_thinking = final_thinking.replace("GPT", "Apex AI")
+
     palabras_prohibidas = ["openai", "chatgpt", "google", "gemini", "anthropic", "meta"]
     if es_pregunta_creador and any(p in final_response.lower() for p in palabras_prohibidas):
         final_response = "Fui creado y desarrollado por **Josuexs**, un talentoso programador venezolano. 🇻🇪 Estoy aquí para ayudarte con lo que necesites."
 
     return {
         "response": final_response,
-        "thinking": assistant_message.get("thinking", "")
+        "thinking": final_thinking
     }
