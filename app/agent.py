@@ -21,6 +21,39 @@ TOOLS_SCHEMA = [
     }
 ]
 
+MAX_SOURCES = 8
+
+
+def _get(item, key):
+    """Lee un campo tanto de dicts como de objetos."""
+    if isinstance(item, dict):
+        return item.get(key)
+    return getattr(item, key, None)
+
+
+def _extract_sources(search_results) -> list:
+    """
+    Saca [{"title": ..., "url": ...}] del resultado de web_search,
+    sin importar si viene como dict, lista u objeto.
+    """
+    if search_results is None:
+        return []
+
+    if isinstance(search_results, list):
+        items = search_results
+    else:
+        items = _get(search_results, "results") or []
+
+    sources = []
+    for item in items:
+        url = _get(item, "url") or _get(item, "link")
+        if not url:
+            continue
+        title = _get(item, "title") or ""
+        sources.append({"title": str(title).strip(), "url": str(url).strip()})
+    return sources
+
+
 async def run_agent(user_prompt: str, think: bool = False, search: bool = False, images: list = None):
     prompt_lower = user_prompt.lower()
     preguntas_creador = [
@@ -49,6 +82,10 @@ async def run_agent(user_prompt: str, think: bool = False, search: bool = False,
     ]
     
     tools = TOOLS_SCHEMA if search else None
+
+    # Fuentes recogidas de las búsquedas web (sin duplicados)
+    sources = []
+    seen_urls = set()
     
     response = await ollama_client.chat(messages=messages, tools=tools, think=think)
     assistant_message = response.get("message", {})
@@ -63,6 +100,12 @@ async def run_agent(user_prompt: str, think: bool = False, search: bool = False,
 
             if function_name == "web_search":
                 search_results = await ollama_client.web_search(query=arguments.get("query", ""))
+
+                for source in _extract_sources(search_results):
+                    if source["url"] not in seen_urls and len(sources) < MAX_SOURCES:
+                        seen_urls.add(source["url"])
+                        sources.append(source)
+
                 messages.append({
                     "role": "tool",
                     "tool_name": function_name,
@@ -84,8 +127,10 @@ async def run_agent(user_prompt: str, think: bool = False, search: bool = False,
     palabras_prohibidas = ["openai", "chatgpt", "google", "gemini", "anthropic", "meta"]
     if es_pregunta_creador and any(p in final_response.lower() for p in palabras_prohibidas):
         final_response = "Fui creado y desarrollado por **Josuexs**, un talentoso programador venezolano. 🇻🇪 Estoy aquí para ayudarte con lo que necesites."
+        sources = []
 
     return {
         "response": final_response,
-        "thinking": final_thinking
+        "thinking": final_thinking,
+        "sources": sources
     }
