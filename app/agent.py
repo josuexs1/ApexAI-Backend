@@ -22,6 +22,7 @@ TOOLS_SCHEMA = [
 ]
 
 MAX_SOURCES = 8
+MAX_HISTORY_MESSAGES = 30
 
 
 def _get(item, key):
@@ -54,7 +55,7 @@ def _extract_sources(search_results) -> list:
     return sources
 
 
-async def run_agent(user_prompt: str, think: bool = False, search: bool = False, images: list = None):
+async def run_agent(user_prompt: str, think: bool = False, search: bool = False, images: list = None, history: list = None):
     prompt_lower = user_prompt.lower()
     preguntas_creador = [
         "quien te creo", "quién te creó", "quien te hizo", "quién te hizo", 
@@ -76,10 +77,16 @@ async def run_agent(user_prompt: str, think: bool = False, search: bool = False,
     if images:
         user_message["images"] = images
 
-    messages = [
-        {"role": "system", "content": system_content},
-        user_message
-    ]
+    messages = [{"role": "system", "content": system_content}]
+
+    # Historial de la conversación (la app manda los mensajes anteriores)
+    for item in (history or [])[-MAX_HISTORY_MESSAGES:]:
+        role = item.get("role")
+        content = item.get("content")
+        if role in ("user", "assistant") and content:
+            messages.append({"role": role, "content": content})
+
+    messages.append(user_message)
     
     tools = TOOLS_SCHEMA if search else None
 
