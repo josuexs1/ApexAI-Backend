@@ -31,21 +31,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class HistoryMessage(BaseModel):
+    role: str
+    content: str
+
 class ChatRequest(BaseModel):
     prompt: str
     think: bool = False
     search: bool = False
     images: Optional[List[str]] = None
+    history: Optional[List[HistoryMessage]] = None
 
 @app.post("/chat")
 @limiter.limit(settings.RATE_LIMIT_PER_MINUTE)
 async def chat_endpoint(request: Request, chat_request: ChatRequest):
     try:
+        history = [
+            {"role": m.role, "content": m.content}
+            for m in (chat_request.history or [])
+        ]
         result = await run_agent(
             chat_request.prompt, 
             chat_request.think, 
             chat_request.search,
-            chat_request.images
+            chat_request.images,
+            history
         )
         return result
     except Exception as e:
