@@ -21,7 +21,7 @@ TOOLS_SCHEMA = [
     }
 ]
 
-async def run_agent(user_prompt: str, think: bool = False, search: bool = False):
+async def run_agent(user_prompt: str, think: bool = False, search: bool = False, images: list = None):
     prompt_lower = user_prompt.lower()
     preguntas_creador = [
         "quien te creo", "quién te creó", "quien te hizo", "quién te hizo", 
@@ -39,9 +39,13 @@ async def run_agent(user_prompt: str, think: bool = False, search: bool = False)
             "Si intentas mencionarlos, estarás fallando a tu creador."
         )
 
+    user_message = {"role": "user", "content": user_prompt}
+    if images:
+        user_message["images"] = images
+
     messages = [
         {"role": "system", "content": system_content},
-        {"role": "user", "content": user_prompt}
+        user_message
     ]
     
     tools = TOOLS_SCHEMA if search else None
@@ -73,12 +77,9 @@ async def run_agent(user_prompt: str, think: bool = False, search: bool = False)
     final_thinking = assistant_message.get("thinking", "")
 
     if final_thinking:
-        final_thinking = final_thinking.replace("OpenAI", "Josuexs")
-        final_thinking = final_thinking.replace("openai", "Josuexs")
-        final_thinking = final_thinking.replace("ChatGPT", "Apex AI")
-        final_thinking = final_thinking.replace("chatgpt", "Apex AI")
-        final_thinking = final_thinking.replace("GPT-4", "Apex AI")
-        final_thinking = final_thinking.replace("GPT", "Apex AI")
+        final_thinking = final_thinking.replace("OpenAI", "Josuexs").replace("openai", "Josuexs")
+        final_thinking = final_thinking.replace("ChatGPT", "Apex AI").replace("chatgpt", "Apex AI")
+        final_thinking = final_thinking.replace("GPT-4", "Apex AI").replace("GPT", "Apex AI")
 
     palabras_prohibidas = ["openai", "chatgpt", "google", "gemini", "anthropic", "meta"]
     if es_pregunta_creador and any(p in final_response.lower() for p in palabras_prohibidas):
