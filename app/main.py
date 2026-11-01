@@ -1,3 +1,4 @@
+from typing import List, Optional
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,12 +35,18 @@ class ChatRequest(BaseModel):
     prompt: str
     think: bool = False
     search: bool = False
+    images: Optional[List[str]] = None
 
 @app.post("/chat")
 @limiter.limit(settings.RATE_LIMIT_PER_MINUTE)
 async def chat_endpoint(request: Request, chat_request: ChatRequest):
     try:
-        result = await run_agent(chat_request.prompt, chat_request.think, chat_request.search)
+        result = await run_agent(
+            chat_request.prompt, 
+            chat_request.think, 
+            chat_request.search,
+            chat_request.images
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
