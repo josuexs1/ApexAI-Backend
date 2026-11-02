@@ -4,3 +4,4 @@ httpx
 pydantic-settings
 tenacity
 slowapi
+elevenlabs
