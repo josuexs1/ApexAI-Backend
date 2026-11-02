@@ -13,10 +13,12 @@ from app.config import settings
 
 limiter = Limiter(key_func=get_remote_address)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
     await ollama_client.close()
+
 
 app = FastAPI(title="Apex AI - Ollama Cloud Agent API", lifespan=lifespan)
 
@@ -31,9 +33,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 class HistoryMessage(BaseModel):
     role: str
     content: str
+
 
 class ChatRequest(BaseModel):
     prompt: str
@@ -42,7 +46,24 @@ class ChatRequest(BaseModel):
     images: Optional[List[str]] = None
     history: Optional[List[HistoryMessage]] = None
 
-@app.post("/chat")
+
+class DecisionCardOut(BaseModel):
+    title: str
+    description: str
+    badge: Optional[str] = None
+    badgeColor: Optional[int] = None
+    primaryAction: str
+    secondaryAction: Optional[str] = None
+
+
+class ChatResponseOut(BaseModel):
+    response: str
+    thinking: Optional[str] = None
+    sources: Optional[List[dict]] = None
+    decisionCards: Optional[List[DecisionCardOut]] = None
+
+
+@app.post("/chat", response_model=ChatResponseOut)
 @limiter.limit(settings.RATE_LIMIT_PER_MINUTE)
 async def chat_endpoint(request: Request, chat_request: ChatRequest):
     try:
@@ -51,8 +72,8 @@ async def chat_endpoint(request: Request, chat_request: ChatRequest):
             for m in (chat_request.history or [])
         ]
         result = await run_agent(
-            chat_request.prompt, 
-            chat_request.think, 
+            chat_request.prompt,
+            chat_request.think,
             chat_request.search,
             chat_request.images,
             history
@@ -61,9 +82,11 @@ async def chat_endpoint(request: Request, chat_request: ChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "creator": "Josuexs (Venezuela)"}
+
 
 @app.get("/version")
 async def get_version():
