@@ -165,6 +165,15 @@ async def run_agent(user_prompt: str, think: bool = False, search: bool = False,
             "Si intentas mencionarlos, estarás fallando a tu creador."
         )
 
+    # --- NUEVO BLOQUE: FORZAR BÚSQUEDA SI ESTÁ ACTIVA ---
+    if search:
+        system_content += (
+            "\n\n[INSTRUCCIÓN OBLIGATORIA]: El usuario ha activado explícitamente la búsqueda web. "
+            "ESTÁS OBLIGADO a usar la herramienta 'web_search' para obtener información fresca y en tiempo real "
+            "antes de dar cualquier respuesta. NO respondas de memoria. Busca primero, luego responde usando los resultados."
+        )
+    # ----------------------------------------------------
+
     user_message = {"role": "user", "content": user_prompt}
     if images:
         user_message["images"] = images
