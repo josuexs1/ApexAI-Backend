@@ -86,10 +86,10 @@ async def chat_endpoint(request: Request, chat_request: ChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/tts")
-async def generate_voice(request: TTSRequest):
+@app.get("/tts")
+async def generate_voice(text: str):
     try:
-        clean_text = request.text.replace("*", "").replace("#", "").replace("`", "").strip()
+        clean_text = text.replace("*", "").replace("#", "").replace("`", "").strip()
         
         if not clean_text:
             raise HTTPException(status_code=400, detail="El texto está vacío")
