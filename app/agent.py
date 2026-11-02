@@ -1,4 +1,5 @@
 import json
+import re
 from app.ollama_client import ollama_client
 from app.config import settings
 
@@ -96,32 +97,53 @@ def _sanitize_decision_cards(raw_cards) -> list:
 
 async def _generate_decision_cards(user_prompt: str, base_answer: str) -> list:
     cards_prompt = (
-        "Eres un asistente que ayuda al usuario a decidir. "
-        "A partir de la pregunta del usuario y de la respuesta ya redactada, "
-        "genera entre 2 y 3 tarjetas de opción para que el usuario elija.\n\n"
+        "Responde SOLO con JSON válido, sin texto antes ni después, sin markdown.\n\n"
+        "Genera entre 2 y 3 tarjetas de decisión para ayudar al usuario a elegir.\n\n"
         f"PREGUNTA DEL USUARIO:\n{user_prompt}\n\n"
-        f"RESPUESTA YA REDACTADA:\n{base_answer}\n\n"
-        "Devuelve EXCLUSIVAMENTE un JSON válido con esta forma:\n"
-        '{"decisionCards": [\n'
-        '  {"title": "nombre corto (máx 40)", "description": "1 frase (máx 120)", '
-        '"badge": "Recomendado"|"Rápido"|"Económico"|null, '
-        '"primaryAction": "texto del botón (máx 20)", '
-        '"secondaryAction": "texto del botón secundario o null"}\n'
-        "]}\n"
-        "No añadas texto fuera del JSON. Máximo 3 tarjetas."
+        f"RESPUESTA YA REDACTADA:\n{base_answer[:1500]}\n\n"
+        "Formato exacto:\n"
+        '{"decisionCards": [{"title": "Nombre corto (máx 40)", '
+        '"description": "Una frase clara (máx 120)", '
+        '"badge": "Recomendado", '
+        '"primaryAction": "Elegir esta", '
+        '"secondaryAction": "Ver más"}]}\n\n'
+        "Máximo 3 tarjetas. No incluyas explicaciones fuera del JSON."
     )
 
     try:
         response = await ollama_client.chat(
             messages=[{"role": "user", "content": cards_prompt}],
             think=False,
-            json_mode=True
+            json_mode=False
         )
-        content = response.get("message", {}).get("content", "")
-        parsed = json.loads(content)
-        return _sanitize_decision_cards(parsed.get("decisionCards", []))
+
+        message = response.get("message", {}) or {}
+        content = (message.get("content") or "").strip()
+        thinking = (message.get("thinking") or "").strip()
+
+        print(f"decisionCards content={repr(content[:300])} thinking={repr(thinking[:300])}")
+
+        raw = content or thinking
+        if not raw:
+            print("Modelo devolvio contenido vacio para decisionCards")
+            return []
+
+        if raw.startswith("```"):
+            raw = raw.strip("`")
+            if raw.lower().startswith("json"):
+                raw = raw[4:].strip()
+
+        match = re.search(r"\{.*\}", raw, re.DOTALL)
+        if not match:
+            print(f"No se encontro JSON en: {raw[:200]}")
+            return []
+
+        parsed = json.loads(match.group(0))
+        cards = _sanitize_decision_cards(parsed.get("decisionCards", []))
+        print(f"decisionCards generadas: {len(cards)}")
+        return cards
     except Exception as e:
-        print(f"No se pudieron generar decisionCards: {e}")
+        print(f"No se pudieron generar decisionCards: {type(e).__name__}: {e}")
         return []
 
 
