@@ -2,6 +2,7 @@ import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from app.config import settings
 
+
 class OllamaCloudClient:
     def __init__(self):
         self.base_url = settings.OLLAMA_CLOUD_HOST
@@ -25,7 +26,7 @@ class OllamaCloudClient:
         retry=retry_if_exception_type((httpx.RequestError, httpx.HTTPStatusError)),
         reraise=True
     )
-    async def chat(self, messages: list, tools: list = None, think: bool = False):
+    async def chat(self, messages: list, tools: list = None, think: bool = False, json_mode: bool = False):
         payload = {
             "model": settings.DEFAULT_MODEL,
             "messages": messages,
@@ -34,6 +35,8 @@ class OllamaCloudClient:
         }
         if tools:
             payload["tools"] = tools
+        if json_mode:
+            payload["format"] = "json"
 
         response = await self.client.post("/api/chat", json=payload)
         response.raise_for_status()
@@ -50,5 +53,6 @@ class OllamaCloudClient:
         response = await self.client.post("/api/web_search", json=payload)
         response.raise_for_status()
         return response.json()
+
 
 ollama_client = OllamaCloudClient()
