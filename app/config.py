@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     OLLAMA_API_KEY: str
     OLLAMA_CLOUD_HOST: str = "https://ollama.com"
-    DEFAULT_MODEL: str = "gemma4"
+    DEFAULT_MODEL: str = "gemma3"
     
     HTTPX_TIMEOUT: float = 120.0
     MAX_AGENT_ITERATIONS: int = 5
